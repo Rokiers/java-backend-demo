@@ -83,6 +83,13 @@
             <version>1.9.1</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- SpringDoc OpenAPI (Swagger UI) for Spring Boot 4 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.0.1</version>
+        </dependency>
     </dependencies>
 
     <build>
