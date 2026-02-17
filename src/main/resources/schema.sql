@@ -151,3 +151,112 @@ CREATE TABLE IF NOT EXISTS currency_rate (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_base_target (base_currency, target_currency)
 );
+
+-- User Address
+CREATE TABLE IF NOT EXISTS user_address (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    receiver_name VARCHAR(50) NOT NULL,
+    receiver_phone VARCHAR(20) NOT NULL,
+    province VARCHAR(20) NOT NULL,
+    city VARCHAR(20) NOT NULL,
+    district VARCHAR(20) NOT NULL,
+    detail_address VARCHAR(200) NOT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id)
+);
+
+-- Payment
+CREATE TABLE IF NOT EXISTS payment (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    payment_no VARCHAR(32) NOT NULL UNIQUE,
+    order_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    payment_method VARCHAR(20) NOT NULL,
+    paid_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_order (order_id),
+    INDEX idx_payment_no (payment_no),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+-- Product Review
+CREATE TABLE IF NOT EXISTS product_review (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    order_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    rating INT NOT NULL,
+    content TEXT,
+    images VARCHAR(1000),
+    visible BOOLEAN NOT NULL DEFAULT TRUE,
+    admin_reply TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_product (product_id),
+    FOREIGN KEY (product_id) REFERENCES product(id),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+-- Favorite
+CREATE TABLE IF NOT EXISTS favorite (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_product (user_id, product_id),
+    FOREIGN KEY (product_id) REFERENCES product(id)
+);
+
+-- Coupon
+CREATE TABLE IF NOT EXISTS coupon (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(32) NOT NULL UNIQUE,
+    coupon_type VARCHAR(20) NOT NULL,
+    discount_value DECIMAL(12,2) NOT NULL,
+    min_order_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total_count INT NOT NULL,
+    used_count INT NOT NULL DEFAULT 0,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User Coupon
+CREATE TABLE IF NOT EXISTS user_coupon (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    coupon_id BIGINT NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    used_order_id BIGINT,
+    used_at TIMESTAMP NULL,
+    claimed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_coupon (user_id, coupon_id),
+    FOREIGN KEY (coupon_id) REFERENCES coupon(id)
+);
+
+-- Refund Request
+CREATE TABLE IF NOT EXISTS refund_request (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    refund_no VARCHAR(32) NOT NULL UNIQUE,
+    order_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    refund_amount DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(200) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) NOT NULL,
+    admin_remark VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_order (order_id),
+    INDEX idx_user (user_id),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+);
