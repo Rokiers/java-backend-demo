@@ -1,37 +1,36 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
+import org.apache.ibatis.type.JdbcType;
 
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "order_item")
+@TableName("order_item")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class OrderItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "order_id", nullable = false)
+    @TableField(value = "order_id", jdbcType = JdbcType.BIGINT)
     private Long orderId;
 
-    @Column(name = "sku_id", nullable = false)
+    @TableField(value = "sku_id", jdbcType = JdbcType.BIGINT)
     private Long skuId;
 
-    @Column(name = "product_name_snapshot", nullable = false, length = 200)
+    @TableField(value = "product_name_snapshot", jdbcType = JdbcType.VARCHAR)
     private String productNameSnapshot;
 
-    @Column(name = "sku_spec_snapshot", nullable = false, length = 500)
+    @TableField(value = "sku_spec_snapshot", jdbcType = JdbcType.VARCHAR)
     private String skuSpecSnapshot;
 
-    @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
+    @TableField(value = "unit_price", jdbcType = JdbcType.DECIMAL)
     private BigDecimal unitPrice;
 
-    @Column(nullable = false)
+    @TableField(jdbcType = JdbcType.INTEGER)
     private Integer quantity;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @TableField(jdbcType = JdbcType.DECIMAL)
     private BigDecimal subtotal;
 }

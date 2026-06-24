@@ -1,51 +1,46 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "product_review")
+@TableName("product_review")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ProductReview {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "product_id", nullable = false)
+    @TableField(value = "product_id", jdbcType = JdbcType.BIGINT)
     private Long productId;
 
-    @Column(name = "order_id", nullable = false)
+    @TableField(value = "order_id", jdbcType = JdbcType.BIGINT)
     private Long orderId;
 
-    @Column(name = "user_id", nullable = false)
+    @TableField(value = "user_id", jdbcType = JdbcType.BIGINT)
     private Long userId;
 
-    @Column(nullable = false)
+    @TableField(jdbcType = JdbcType.INTEGER)
     private Integer rating;
 
-    @Column(columnDefinition = "TEXT")
+    @TableField(jdbcType = JdbcType.LONGVARCHAR)
     private String content;
 
-    @Column(length = 1000)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String images;
 
-    @Column(nullable = false)
+    @TableField(jdbcType = JdbcType.BOOLEAN)
     @Builder.Default
     private Boolean visible = true;
 
-    @Column(name = "admin_reply", columnDefinition = "TEXT")
+    @TableField(value = "admin_reply", jdbcType = JdbcType.LONGVARCHAR)
     private String adminReply;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

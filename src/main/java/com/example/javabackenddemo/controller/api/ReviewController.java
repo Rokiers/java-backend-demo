@@ -4,9 +4,9 @@ import com.example.javabackenddemo.dto.request.CreateReviewRequest;
 import com.example.javabackenddemo.dto.response.ApiResponse;
 import com.example.javabackenddemo.dto.response.PageResponse;
 import com.example.javabackenddemo.dto.response.ReviewResponse;
+import com.example.javabackenddemo.security.SecurityUtils;
 import com.example.javabackenddemo.service.ReviewService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,14 +20,13 @@ public class ReviewController {
     }
 
     @PostMapping
-    public ApiResponse<ReviewResponse> create(@RequestHeader("X-User-Id") Long userId,
-            @PathVariable Long productId, @Valid @RequestBody CreateReviewRequest request) {
-        return ApiResponse.success(reviewService.createReview(userId, productId, request));
+    public ApiResponse<ReviewResponse> create(@PathVariable Long productId, @Valid @RequestBody CreateReviewRequest request) {
+        return ApiResponse.success(reviewService.createReview(SecurityUtils.getCurrentUserId(), productId, request));
     }
 
     @GetMapping
     public ApiResponse<PageResponse<ReviewResponse>> list(@PathVariable Long productId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(PageResponse.from(reviewService.listReviews(productId, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(reviewService.listReviews(productId, page, size)));
     }
 }

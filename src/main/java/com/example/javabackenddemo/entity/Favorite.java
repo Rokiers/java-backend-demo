@@ -1,27 +1,24 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "favorite", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "product_id"}))
+@TableName("favorite")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Favorite {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
+    @TableField(value = "user_id", jdbcType = JdbcType.BIGINT)
     private Long userId;
 
-    @Column(name = "product_id", nullable = false)
+    @TableField(value = "product_id", jdbcType = JdbcType.BIGINT)
     private Long productId;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 }

@@ -6,7 +6,6 @@ import com.example.javabackenddemo.dto.response.PageResponse;
 import com.example.javabackenddemo.dto.response.RefundResponse;
 import com.example.javabackenddemo.service.RefundService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,7 +22,7 @@ public class AdminRefundController {
     public ApiResponse<PageResponse<RefundResponse>> list(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(PageResponse.from(refundService.adminListRefunds(status, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(refundService.adminListRefunds(status, page, size)));
     }
 
     @GetMapping("/{id}")

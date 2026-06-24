@@ -1,35 +1,30 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "cart_item", uniqueConstraints = @UniqueConstraint(columnNames = {"cart_id", "sku_id"}))
+@TableName("cart_item")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class CartItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "cart_id", nullable = false)
+    @TableField(value = "cart_id", jdbcType = JdbcType.BIGINT)
     private Long cartId;
 
-    @Column(name = "sku_id", nullable = false)
+    @TableField(value = "sku_id", jdbcType = JdbcType.BIGINT)
     private Long skuId;
 
-    @Column(nullable = false)
+    @TableField(jdbcType = JdbcType.INTEGER)
     private Integer quantity;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

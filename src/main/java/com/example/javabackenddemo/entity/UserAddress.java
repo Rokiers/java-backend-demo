@@ -1,51 +1,46 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "user_address")
+@TableName("user_address")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserAddress {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
+    @TableField(value = "user_id", jdbcType = JdbcType.BIGINT)
     private Long userId;
 
-    @Column(name = "receiver_name", nullable = false, length = 50)
+    @TableField(value = "receiver_name", jdbcType = JdbcType.VARCHAR)
     private String receiverName;
 
-    @Column(name = "receiver_phone", nullable = false, length = 20)
+    @TableField(value = "receiver_phone", jdbcType = JdbcType.VARCHAR)
     private String receiverPhone;
 
-    @Column(nullable = false, length = 20)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String province;
 
-    @Column(nullable = false, length = 20)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String city;
 
-    @Column(nullable = false, length = 20)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String district;
 
-    @Column(name = "detail_address", nullable = false, length = 200)
+    @TableField(value = "detail_address", jdbcType = JdbcType.VARCHAR)
     private String detailAddress;
 
-    @Column(name = "is_default", nullable = false)
+    @TableField(value = "is_default", jdbcType = JdbcType.BOOLEAN)
     @Builder.Default
     private Boolean isDefault = false;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

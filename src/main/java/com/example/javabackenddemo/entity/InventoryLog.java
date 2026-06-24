@@ -1,38 +1,34 @@
 package com.example.javabackenddemo.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
 import com.example.javabackenddemo.enums.InventoryChangeType;
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "inventory_log")
+@TableName("inventory_log")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class InventoryLog {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "inventory_id", nullable = false)
+    @TableField(value = "inventory_id", jdbcType = JdbcType.BIGINT)
     private Long inventoryId;
 
-    @Column(name = "change_quantity", nullable = false)
+    @TableField(value = "change_quantity", jdbcType = JdbcType.INTEGER)
     private Integer changeQuantity;
 
-    @Column(name = "after_quantity", nullable = false)
+    @TableField(value = "after_quantity", jdbcType = JdbcType.INTEGER)
     private Integer afterQuantity;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "change_type", nullable = false, length = 20)
+    @TableField(value = "change_type", jdbcType = JdbcType.VARCHAR)
     private InventoryChangeType changeType;
 
-    @Column(length = 200)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String remark;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 }

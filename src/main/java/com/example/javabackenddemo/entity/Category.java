@@ -1,37 +1,31 @@
 package com.example.javabackenddemo.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "category", uniqueConstraints = @UniqueConstraint(columnNames = {"name", "parent_id"}))
+@TableName("category")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Category {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String name;
 
-    @Column(name = "parent_id")
+    @TableField(value = "parent_id", jdbcType = JdbcType.BIGINT)
     private Long parentId;
 
-    @Column(name = "sort", columnDefinition = "INT DEFAULT 0")
+    @TableField(value = "sort", jdbcType = JdbcType.INTEGER)
     @Builder.Default
     private Integer sort = 0;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

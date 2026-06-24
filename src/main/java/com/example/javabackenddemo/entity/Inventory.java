@@ -1,33 +1,29 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "inventory")
+@TableName("inventory")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Inventory {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sku_id", nullable = false, unique = true)
-    private Sku sku;
+    @TableField(value = "sku_id", jdbcType = JdbcType.BIGINT)
+    private Long skuId;
 
-    @Column(nullable = false)
+    @TableField(jdbcType = JdbcType.INTEGER)
     @Builder.Default
     private Integer quantity = 0;
 
-    @Column(name = "alert_threshold", nullable = false)
+    @TableField(value = "alert_threshold", jdbcType = JdbcType.INTEGER)
     @Builder.Default
     private Integer alertThreshold = 10;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

@@ -6,7 +6,6 @@ import com.example.javabackenddemo.dto.response.PageResponse;
 import com.example.javabackenddemo.dto.response.ReviewResponse;
 import com.example.javabackenddemo.service.ReviewService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,7 +21,7 @@ public class AdminReviewController {
     @GetMapping("/product/{productId}")
     public ApiResponse<PageResponse<ReviewResponse>> list(@PathVariable Long productId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(PageResponse.from(reviewService.adminListReviews(productId, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(reviewService.adminListReviews(productId, page, size)));
     }
 
     @PutMapping("/{reviewId}/reply")

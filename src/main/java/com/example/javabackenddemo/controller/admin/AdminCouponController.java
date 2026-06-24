@@ -6,7 +6,6 @@ import com.example.javabackenddemo.dto.response.CouponResponse;
 import com.example.javabackenddemo.dto.response.PageResponse;
 import com.example.javabackenddemo.service.CouponService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +26,6 @@ public class AdminCouponController {
     @GetMapping
     public ApiResponse<PageResponse<CouponResponse>> list(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(PageResponse.from(couponService.listAvailableCoupons(PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(couponService.listAvailableCoupons(page, size)));
     }
 }

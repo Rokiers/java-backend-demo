@@ -1,37 +1,34 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "user_coupon", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "coupon_id"}))
+@TableName("user_coupon")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserCoupon {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
+    @TableField(value = "user_id", jdbcType = JdbcType.BIGINT)
     private Long userId;
 
-    @Column(name = "coupon_id", nullable = false)
+    @TableField(value = "coupon_id", jdbcType = JdbcType.BIGINT)
     private Long couponId;
 
-    @Column(nullable = false)
+    @TableField(jdbcType = JdbcType.BOOLEAN)
     @Builder.Default
     private Boolean used = false;
 
-    @Column(name = "used_order_id")
+    @TableField(value = "used_order_id", jdbcType = JdbcType.BIGINT)
     private Long usedOrderId;
 
-    @Column(name = "used_at")
+    @TableField(value = "used_at", jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime usedAt;
 
-    @CreationTimestamp
-    @Column(name = "claimed_at", nullable = false, updatable = false)
+    @TableField(value = "claimed_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime claimedAt;
 }

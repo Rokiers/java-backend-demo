@@ -4,6 +4,7 @@ import com.example.javabackenddemo.dto.request.CreateAddressRequest;
 import com.example.javabackenddemo.dto.request.UpdateAddressRequest;
 import com.example.javabackenddemo.dto.response.AddressResponse;
 import com.example.javabackenddemo.dto.response.ApiResponse;
+import com.example.javabackenddemo.security.SecurityUtils;
 import com.example.javabackenddemo.service.AddressService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -21,31 +22,28 @@ public class AddressController {
     }
 
     @GetMapping
-    public ApiResponse<List<AddressResponse>> list(@RequestHeader("X-User-Id") Long userId) {
-        return ApiResponse.success(addressService.listAddresses(userId));
+    public ApiResponse<List<AddressResponse>> list() {
+        return ApiResponse.success(addressService.listAddresses(SecurityUtils.getCurrentUserId()));
     }
 
     @PostMapping
-    public ApiResponse<AddressResponse> create(@RequestHeader("X-User-Id") Long userId,
-            @Valid @RequestBody CreateAddressRequest request) {
-        return ApiResponse.success(addressService.createAddress(userId, request));
+    public ApiResponse<AddressResponse> create(@Valid @RequestBody CreateAddressRequest request) {
+        return ApiResponse.success(addressService.createAddress(SecurityUtils.getCurrentUserId(), request));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<AddressResponse> update(@RequestHeader("X-User-Id") Long userId,
-            @PathVariable Long id, @Valid @RequestBody UpdateAddressRequest request) {
-        return ApiResponse.success(addressService.updateAddress(userId, id, request));
+    public ApiResponse<AddressResponse> update(@PathVariable Long id, @Valid @RequestBody UpdateAddressRequest request) {
+        return ApiResponse.success(addressService.updateAddress(SecurityUtils.getCurrentUserId(), id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@RequestHeader("X-User-Id") Long userId, @PathVariable Long id) {
-        addressService.deleteAddress(userId, id);
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        addressService.deleteAddress(SecurityUtils.getCurrentUserId(), id);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}/default")
-    public ApiResponse<AddressResponse> setDefault(@RequestHeader("X-User-Id") Long userId,
-            @PathVariable Long id) {
-        return ApiResponse.success(addressService.setDefault(userId, id));
+    public ApiResponse<AddressResponse> setDefault(@PathVariable Long id) {
+        return ApiResponse.success(addressService.setDefault(SecurityUtils.getCurrentUserId(), id));
     }
 }

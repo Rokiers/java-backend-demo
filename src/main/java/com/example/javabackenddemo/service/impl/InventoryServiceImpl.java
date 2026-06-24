@@ -1,5 +1,7 @@
 package com.example.javabackenddemo.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.javabackenddemo.dto.request.UpdateInventoryRequest;
 import com.example.javabackenddemo.dto.response.InventoryLogResponse;
 import com.example.javabackenddemo.dto.response.InventoryResponse;
@@ -8,11 +10,10 @@ import com.example.javabackenddemo.entity.InventoryLog;
 import com.example.javabackenddemo.enums.InventoryChangeType;
 import com.example.javabackenddemo.exception.InsufficientStockException;
 import com.example.javabackenddemo.exception.ResourceNotFoundException;
-import com.example.javabackenddemo.repository.InventoryLogRepository;
-import com.example.javabackenddemo.repository.InventoryRepository;
+import com.example.javabackenddemo.mapper.InventoryLogMapper;
+import com.example.javabackenddemo.mapper.InventoryMapper;
+import com.example.javabackenddemo.mapper.SkuMapper;
 import com.example.javabackenddemo.service.InventoryService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,27 +22,30 @@ import java.util.List;
 @Service
 public class InventoryServiceImpl implements InventoryService {
 
-    private final InventoryRepository inventoryRepository;
-    private final InventoryLogRepository logRepository;
+    private final InventoryMapper inventoryMapper;
+    private final InventoryLogMapper logMapper;
+    private final SkuMapper skuMapper;
 
-    public InventoryServiceImpl(InventoryRepository inventoryRepository, InventoryLogRepository logRepository) {
-        this.inventoryRepository = inventoryRepository;
-        this.logRepository = logRepository;
+    public InventoryServiceImpl(InventoryMapper inventoryMapper, InventoryLogMapper logMapper,
+                                SkuMapper skuMapper) {
+        this.inventoryMapper = inventoryMapper;
+        this.logMapper = logMapper;
+        this.skuMapper = skuMapper;
     }
 
     @Override
     @Transactional
     public void deductStock(Long skuId, int quantity) {
-        Inventory inventory = inventoryRepository.findBySkuId(skuId)
-                .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for SKU: " + skuId));
+        Inventory inventory = inventoryMapper.selectOne(new LambdaQueryWrapper<Inventory>().eq(Inventory::getSkuId, skuId));
+        if (inventory == null) throw new ResourceNotFoundException("Inventory not found for SKU: " + skuId);
         int newQty = inventory.getQuantity() - quantity;
         if (newQty < 0) {
             throw new InsufficientStockException("Insufficient stock for SKU: " + skuId, List.of(skuId));
         }
         int oldQty = inventory.getQuantity();
         inventory.setQuantity(newQty);
-        inventoryRepository.save(inventory);
-        logRepository.save(InventoryLog.builder()
+        inventoryMapper.updateById(inventory);
+        logMapper.insert(InventoryLog.builder()
                 .inventoryId(inventory.getId())
                 .changeQuantity(-quantity)
                 .afterQuantity(newQty)
@@ -53,14 +57,14 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public void setStock(Long skuId, UpdateInventoryRequest request) {
-        Inventory inventory = inventoryRepository.findBySkuId(skuId)
-                .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for SKU: " + skuId));
+        Inventory inventory = inventoryMapper.selectOne(new LambdaQueryWrapper<Inventory>().eq(Inventory::getSkuId, skuId));
+        if (inventory == null) throw new ResourceNotFoundException("Inventory not found for SKU: " + skuId);
         int oldQty = inventory.getQuantity();
         int change = request.quantity() - oldQty;
         inventory.setQuantity(request.quantity());
         if (request.alertThreshold() != null) inventory.setAlertThreshold(request.alertThreshold());
-        inventoryRepository.save(inventory);
-        logRepository.save(InventoryLog.builder()
+        inventoryMapper.updateById(inventory);
+        logMapper.insert(InventoryLog.builder()
                 .inventoryId(inventory.getId())
                 .changeQuantity(change)
                 .afterQuantity(request.quantity())
@@ -70,30 +74,48 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Page<InventoryResponse> listInventory(boolean lowStockOnly, Pageable pageable) {
-        Page<Inventory> page;
+    public Page<InventoryResponse> listInventory(boolean lowStockOnly, int page, int size) {
+        Page<Inventory> myPage = new Page<>(page + 1, size);
+        Page<Inventory> result;
         if (lowStockOnly) {
-            page = inventoryRepository.findLowStock(pageable);
+            List<Inventory> all = inventoryMapper.findLowStock();
+            result = new Page<>(page + 1, size, all.size());
+            int from = Math.min(page * size, all.size());
+            int to = Math.min(from + size, all.size());
+            result.setRecords(all.subList(from, to));
         } else {
-            page = inventoryRepository.findAll(pageable);
+            result = inventoryMapper.selectPage(myPage, null);
         }
-        return page.map(inv -> new InventoryResponse(
-                inv.getSku().getId(), inv.getSku().getSkuCode(),
-                inv.getQuantity(), inv.getAlertThreshold(),
-                inv.getQuantity() < inv.getAlertThreshold()));
+        return convertPage(result, inv -> {
+            var sku = skuMapper.selectById(inv.getSkuId());
+            return new InventoryResponse(inv.getSkuId(), sku != null ? sku.getSkuCode() : "",
+                    inv.getQuantity(), inv.getAlertThreshold(),
+                    inv.getQuantity() < inv.getAlertThreshold());
+        });
     }
 
     @Override
-    public Page<InventoryLogResponse> getInventoryLogs(Long skuId, Pageable pageable) {
-        Inventory inventory = inventoryRepository.findBySkuId(skuId)
-                .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for SKU: " + skuId));
-        return logRepository.findByInventoryIdOrderByCreatedAtDesc(inventory.getId(), pageable)
-                .map(log -> new InventoryLogResponse(log.getId(), log.getChangeQuantity(),
-                        log.getAfterQuantity(), log.getChangeType().name(), log.getRemark(), log.getCreatedAt()));
+    public Page<InventoryLogResponse> getInventoryLogs(Long skuId, int page, int size) {
+        Inventory inventory = inventoryMapper.selectOne(new LambdaQueryWrapper<Inventory>().eq(Inventory::getSkuId, skuId));
+        if (inventory == null) throw new ResourceNotFoundException("Inventory not found for SKU: " + skuId);
+        Page<InventoryLog> myPage = new Page<>(page + 1, size);
+        Page<InventoryLog> logs = logMapper.selectPage(myPage,
+                new LambdaQueryWrapper<InventoryLog>().eq(InventoryLog::getInventoryId, inventory.getId())
+                        .orderByDesc(InventoryLog::getCreatedAt));
+        return convertPage(logs, log -> new InventoryLogResponse(log.getId(), log.getChangeQuantity(),
+                log.getAfterQuantity(), log.getChangeType().name(), log.getRemark(), log.getCreatedAt()));
     }
 
     @Override
     public int getAvailableStock(Long skuId) {
-        return inventoryRepository.findBySkuId(skuId).map(Inventory::getQuantity).orElse(0);
+        Inventory inv = inventoryMapper.selectOne(new LambdaQueryWrapper<Inventory>().eq(Inventory::getSkuId, skuId));
+        return inv != null ? inv.getQuantity() : 0;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T, R> Page<R> convertPage(Page<T> source, java.util.function.Function<T, R> mapper) {
+        Page<R> result = new Page<>(source.getCurrent(), source.getSize(), source.getTotal());
+        result.setRecords(source.getRecords().stream().map(mapper).toList());
+        return result;
     }
 }

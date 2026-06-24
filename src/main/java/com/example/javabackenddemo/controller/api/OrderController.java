@@ -6,9 +6,9 @@ import com.example.javabackenddemo.dto.response.OrderListItemResponse;
 import com.example.javabackenddemo.dto.response.OrderResponse;
 import com.example.javabackenddemo.dto.response.PageResponse;
 import com.example.javabackenddemo.enums.OrderStatus;
+import com.example.javabackenddemo.security.SecurityUtils;
 import com.example.javabackenddemo.service.OrderService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,16 +22,15 @@ public class OrderController {
     }
 
     @PostMapping
-    public ApiResponse<OrderResponse> create(@RequestHeader("X-User-Id") Long userId,
-            @Valid @RequestBody CreateOrderRequest request) {
-        return ApiResponse.success(orderService.createOrder(userId, request));
+    public ApiResponse<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
+        return ApiResponse.success(orderService.createOrder(SecurityUtils.getCurrentUserId(), request));
     }
 
     @GetMapping
-    public ApiResponse<PageResponse<OrderListItemResponse>> list(@RequestHeader("X-User-Id") Long userId,
+    public ApiResponse<PageResponse<OrderListItemResponse>> list(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) OrderStatus status) {
-        return ApiResponse.success(PageResponse.from(orderService.listOrders(userId, status, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(orderService.listOrders(SecurityUtils.getCurrentUserId(), status, page, size)));
     }
 
     @GetMapping("/{id}")

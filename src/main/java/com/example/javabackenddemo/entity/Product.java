@@ -1,62 +1,42 @@
 package com.example.javabackenddemo.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
 import com.example.javabackenddemo.enums.ProductStatus;
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
-@Entity
-@Table(name = "product")
+@TableName("product")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Product {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false, length = 200)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @TableField(jdbcType = JdbcType.LONGVARCHAR)
     private String description;
 
-    @Column(name = "main_image", length = 500)
+    @TableField(value = "main_image", jdbcType = JdbcType.VARCHAR)
     private String mainImage;
 
-    @Column(name = "category_id", nullable = false)
+    @TableField(value = "category_id", jdbcType = JdbcType.BIGINT)
     private Long categoryId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     @Builder.Default
     private ProductStatus status = ProductStatus.ACTIVE;
 
-    @Column(name = "base_currency", nullable = false, length = 3)
+    @TableField(value = "base_currency", jdbcType = JdbcType.VARCHAR)
     @Builder.Default
     private String baseCurrency = "CNY";
 
-    @OneToMany(mappedBy = "productId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<ProductAttribute> attributes = new ArrayList<>();
-
-    @OneToMany(mappedBy = "productId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<ProductTranslation> translations = new ArrayList<>();
-
-    @OneToMany(mappedBy = "productId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Sku> skus = new ArrayList<>();
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

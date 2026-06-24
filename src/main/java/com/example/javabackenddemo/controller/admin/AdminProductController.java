@@ -6,7 +6,6 @@ import com.example.javabackenddemo.entity.Product;
 import com.example.javabackenddemo.enums.ProductStatus;
 import com.example.javabackenddemo.service.ProductService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -40,7 +39,7 @@ public class AdminProductController {
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String name, @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) ProductStatus status) {
-        return ApiResponse.success(PageResponse.from(productService.adminList(name, categoryId, status, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(productService.adminList(name, categoryId, status, page, size)));
     }
 
     @GetMapping("/{id}")

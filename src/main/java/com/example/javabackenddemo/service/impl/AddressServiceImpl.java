@@ -1,11 +1,12 @@
 package com.example.javabackenddemo.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.javabackenddemo.dto.request.CreateAddressRequest;
 import com.example.javabackenddemo.dto.request.UpdateAddressRequest;
 import com.example.javabackenddemo.dto.response.AddressResponse;
 import com.example.javabackenddemo.entity.UserAddress;
 import com.example.javabackenddemo.exception.ResourceNotFoundException;
-import com.example.javabackenddemo.repository.UserAddressRepository;
+import com.example.javabackenddemo.mapper.UserAddressMapper;
 import com.example.javabackenddemo.service.AddressService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,15 +16,18 @@ import java.util.List;
 @Service
 public class AddressServiceImpl implements AddressService {
 
-    private final UserAddressRepository addressRepository;
+    private final UserAddressMapper addressMapper;
 
-    public AddressServiceImpl(UserAddressRepository addressRepository) {
-        this.addressRepository = addressRepository;
+    public AddressServiceImpl(UserAddressMapper addressMapper) {
+        this.addressMapper = addressMapper;
     }
 
     @Override
     public List<AddressResponse> listAddresses(Long userId) {
-        return addressRepository.findByUserIdOrderByIsDefaultDescCreatedAtDesc(userId)
+        return addressMapper.selectList(new LambdaQueryWrapper<UserAddress>()
+                .eq(UserAddress::getUserId, userId)
+                .orderByDesc(UserAddress::getIsDefault)
+                .orderByDesc(UserAddress::getCreatedAt))
                 .stream().map(this::toResponse).toList();
     }
 
@@ -43,14 +47,16 @@ public class AddressServiceImpl implements AddressService {
                 .detailAddress(request.detailAddress())
                 .isDefault(Boolean.TRUE.equals(request.isDefault()))
                 .build();
-        return toResponse(addressRepository.save(address));
+        addressMapper.insert(address);
+        return toResponse(address);
     }
 
     @Override
     @Transactional
     public AddressResponse updateAddress(Long userId, Long addressId, UpdateAddressRequest request) {
-        UserAddress address = addressRepository.findByIdAndUserId(addressId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address not found: " + addressId));
+        UserAddress address = addressMapper.selectOne(new LambdaQueryWrapper<UserAddress>()
+                .eq(UserAddress::getId, addressId).eq(UserAddress::getUserId, userId));
+        if (address == null) throw new ResourceNotFoundException("Address not found: " + addressId);
         if (request.receiverName() != null) address.setReceiverName(request.receiverName());
         if (request.receiverPhone() != null) address.setReceiverPhone(request.receiverPhone());
         if (request.province() != null) address.setProvince(request.province());
@@ -61,29 +67,37 @@ public class AddressServiceImpl implements AddressService {
             clearDefault(userId);
             address.setIsDefault(true);
         }
-        return toResponse(addressRepository.save(address));
+        addressMapper.updateById(address);
+        return toResponse(address);
     }
 
     @Override
     public void deleteAddress(Long userId, Long addressId) {
-        UserAddress address = addressRepository.findByIdAndUserId(addressId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address not found: " + addressId));
-        addressRepository.delete(address);
+        UserAddress address = addressMapper.selectOne(new LambdaQueryWrapper<UserAddress>()
+                .eq(UserAddress::getId, addressId).eq(UserAddress::getUserId, userId));
+        if (address == null) throw new ResourceNotFoundException("Address not found: " + addressId);
+        addressMapper.deleteById(address.getId());
     }
 
     @Override
     @Transactional
     public AddressResponse setDefault(Long userId, Long addressId) {
-        UserAddress address = addressRepository.findByIdAndUserId(addressId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address not found: " + addressId));
+        UserAddress address = addressMapper.selectOne(new LambdaQueryWrapper<UserAddress>()
+                .eq(UserAddress::getId, addressId).eq(UserAddress::getUserId, userId));
+        if (address == null) throw new ResourceNotFoundException("Address not found: " + addressId);
         clearDefault(userId);
         address.setIsDefault(true);
-        return toResponse(addressRepository.save(address));
+        addressMapper.updateById(address);
+        return toResponse(address);
     }
 
     private void clearDefault(Long userId) {
-        addressRepository.findByUserIdAndIsDefaultTrue(userId)
-                .ifPresent(a -> { a.setIsDefault(false); addressRepository.save(a); });
+        UserAddress def = addressMapper.selectOne(new LambdaQueryWrapper<UserAddress>()
+                .eq(UserAddress::getUserId, userId).eq(UserAddress::getIsDefault, true));
+        if (def != null) {
+            def.setIsDefault(false);
+            addressMapper.updateById(def);
+        }
     }
 
     private AddressResponse toResponse(UserAddress a) {

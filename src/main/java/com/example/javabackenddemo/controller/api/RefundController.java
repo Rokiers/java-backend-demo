@@ -4,9 +4,9 @@ import com.example.javabackenddemo.dto.request.CreateRefundRequest;
 import com.example.javabackenddemo.dto.response.ApiResponse;
 import com.example.javabackenddemo.dto.response.PageResponse;
 import com.example.javabackenddemo.dto.response.RefundResponse;
+import com.example.javabackenddemo.security.SecurityUtils;
 import com.example.javabackenddemo.service.RefundService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,15 +20,14 @@ public class RefundController {
     }
 
     @PostMapping
-    public ApiResponse<RefundResponse> create(@RequestHeader("X-User-Id") Long userId,
-            @Valid @RequestBody CreateRefundRequest request) {
-        return ApiResponse.success(refundService.createRefund(userId, request));
+    public ApiResponse<RefundResponse> create(@Valid @RequestBody CreateRefundRequest request) {
+        return ApiResponse.success(refundService.createRefund(SecurityUtils.getCurrentUserId(), request));
     }
 
     @GetMapping
-    public ApiResponse<PageResponse<RefundResponse>> list(@RequestHeader("X-User-Id") Long userId,
+    public ApiResponse<PageResponse<RefundResponse>> list(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(PageResponse.from(refundService.listUserRefunds(userId, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(refundService.listUserRefunds(SecurityUtils.getCurrentUserId(), page, size)));
     }
 
     @GetMapping("/{id}")

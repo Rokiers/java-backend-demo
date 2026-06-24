@@ -1,5 +1,7 @@
 package com.example.javabackenddemo.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.javabackenddemo.dto.request.CreateCouponRequest;
 import com.example.javabackenddemo.dto.response.CouponResponse;
 import com.example.javabackenddemo.dto.response.UserCouponResponse;
@@ -9,11 +11,9 @@ import com.example.javabackenddemo.enums.CouponType;
 import com.example.javabackenddemo.exception.DuplicateResourceException;
 import com.example.javabackenddemo.exception.InvalidStateTransitionException;
 import com.example.javabackenddemo.exception.ResourceNotFoundException;
-import com.example.javabackenddemo.repository.CouponRepository;
-import com.example.javabackenddemo.repository.UserCouponRepository;
+import com.example.javabackenddemo.mapper.CouponMapper;
+import com.example.javabackenddemo.mapper.UserCouponMapper;
 import com.example.javabackenddemo.service.CouponService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,18 +25,19 @@ import java.util.List;
 @Service
 public class CouponServiceImpl implements CouponService {
 
-    private final CouponRepository couponRepository;
-    private final UserCouponRepository userCouponRepository;
+    private final CouponMapper couponMapper;
+    private final UserCouponMapper userCouponMapper;
 
-    public CouponServiceImpl(CouponRepository couponRepository, UserCouponRepository userCouponRepository) {
-        this.couponRepository = couponRepository;
-        this.userCouponRepository = userCouponRepository;
+    public CouponServiceImpl(CouponMapper couponMapper, UserCouponMapper userCouponMapper) {
+        this.couponMapper = couponMapper;
+        this.userCouponMapper = userCouponMapper;
     }
 
     @Override
     public CouponResponse createCoupon(CreateCouponRequest request) {
-        couponRepository.findByCode(request.code())
-                .ifPresent(c -> { throw new DuplicateResourceException("Coupon code already exists: " + request.code()); });
+        if (couponMapper.selectOne(new LambdaQueryWrapper<Coupon>().eq(Coupon::getCode, request.code())) != null) {
+            throw new DuplicateResourceException("Coupon code already exists: " + request.code());
+        }
         Coupon coupon = Coupon.builder()
                 .name(request.name())
                 .code(request.code())
@@ -47,19 +48,25 @@ public class CouponServiceImpl implements CouponService {
                 .startTime(request.startTime())
                 .endTime(request.endTime())
                 .build();
-        return toCouponResponse(couponRepository.save(coupon));
+        couponMapper.insert(coupon);
+        return toCouponResponse(coupon);
     }
 
     @Override
-    public Page<CouponResponse> listAvailableCoupons(Pageable pageable) {
-        return couponRepository.findAvailable(LocalDateTime.now(), pageable).map(this::toCouponResponse);
+    public Page<CouponResponse> listAvailableCoupons(int page, int size) {
+        List<Coupon> all = couponMapper.findAvailable();
+        Page<CouponResponse> result = new Page<>(page + 1, size, all.size());
+        int from = Math.min(page * size, all.size());
+        int to = Math.min(from + size, all.size());
+        result.setRecords(all.subList(from, to).stream().map(this::toCouponResponse).toList());
+        return result;
     }
 
     @Override
     @Transactional
     public UserCouponResponse claimCoupon(Long userId, Long couponId) {
-        Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found: " + couponId));
+        Coupon coupon = couponMapper.selectById(couponId);
+        if (coupon == null) throw new ResourceNotFoundException("Coupon not found: " + couponId);
         if (!coupon.getEnabled() || LocalDateTime.now().isBefore(coupon.getStartTime())
                 || LocalDateTime.now().isAfter(coupon.getEndTime())) {
             throw new InvalidStateTransitionException("Coupon is not available");
@@ -67,28 +74,33 @@ public class CouponServiceImpl implements CouponService {
         if (coupon.getUsedCount() >= coupon.getTotalCount()) {
             throw new InvalidStateTransitionException("Coupon is fully claimed");
         }
-        userCouponRepository.findByUserIdAndCouponId(userId, couponId)
-                .ifPresent(uc -> { throw new DuplicateResourceException("Coupon already claimed"); });
+        if (userCouponMapper.selectOne(new LambdaQueryWrapper<UserCoupon>()
+                .eq(UserCoupon::getUserId, userId).eq(UserCoupon::getCouponId, couponId)) != null) {
+            throw new DuplicateResourceException("Coupon already claimed");
+        }
         coupon.setUsedCount(coupon.getUsedCount() + 1);
-        couponRepository.save(coupon);
+        couponMapper.updateById(coupon);
         UserCoupon uc = UserCoupon.builder().userId(userId).couponId(couponId).build();
-        return toUserCouponResponse(userCouponRepository.save(uc), coupon);
+        userCouponMapper.insert(uc);
+        return toUserCouponResponse(uc, coupon);
     }
 
     @Override
     public List<UserCouponResponse> listUserCoupons(Long userId) {
-        return userCouponRepository.findByUserId(userId).stream().map(uc -> {
-            Coupon coupon = couponRepository.findById(uc.getCouponId()).orElse(null);
-            return toUserCouponResponse(uc, coupon);
-        }).toList();
+        return userCouponMapper.selectList(new LambdaQueryWrapper<UserCoupon>().eq(UserCoupon::getUserId, userId))
+                .stream().map(uc -> {
+                    Coupon coupon = couponMapper.selectById(uc.getCouponId());
+                    return toUserCouponResponse(uc, coupon);
+                }).toList();
     }
 
     @Override
     public BigDecimal applyCoupon(Long userId, Long userCouponId, BigDecimal orderAmount) {
-        UserCoupon uc = userCouponRepository.findByIdAndUserIdAndUsedFalse(userCouponId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User coupon not found or already used"));
-        Coupon coupon = couponRepository.findById(uc.getCouponId())
-                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
+        UserCoupon uc = userCouponMapper.selectOne(new LambdaQueryWrapper<UserCoupon>()
+                .eq(UserCoupon::getId, userCouponId).eq(UserCoupon::getUserId, userId).eq(UserCoupon::getUsed, false));
+        if (uc == null) throw new ResourceNotFoundException("User coupon not found or already used");
+        Coupon coupon = couponMapper.selectById(uc.getCouponId());
+        if (coupon == null) throw new ResourceNotFoundException("Coupon not found");
         if (orderAmount.compareTo(coupon.getMinOrderAmount()) < 0) {
             throw new InvalidStateTransitionException("Order amount does not meet minimum requirement");
         }
@@ -105,12 +117,12 @@ public class CouponServiceImpl implements CouponService {
     @Override
     @Transactional
     public void markCouponUsed(Long userCouponId, Long orderId) {
-        UserCoupon uc = userCouponRepository.findById(userCouponId)
-                .orElseThrow(() -> new ResourceNotFoundException("User coupon not found"));
+        UserCoupon uc = userCouponMapper.selectById(userCouponId);
+        if (uc == null) throw new ResourceNotFoundException("User coupon not found");
         uc.setUsed(true);
         uc.setUsedOrderId(orderId);
         uc.setUsedAt(LocalDateTime.now());
-        userCouponRepository.save(uc);
+        userCouponMapper.updateById(uc);
     }
 
     private CouponResponse toCouponResponse(Coupon c) {

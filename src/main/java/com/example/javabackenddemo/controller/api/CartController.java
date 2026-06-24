@@ -4,6 +4,7 @@ import com.example.javabackenddemo.dto.request.AddCartItemRequest;
 import com.example.javabackenddemo.dto.request.UpdateCartItemRequest;
 import com.example.javabackenddemo.dto.response.ApiResponse;
 import com.example.javabackenddemo.dto.response.CartResponse;
+import com.example.javabackenddemo.security.SecurityUtils;
 import com.example.javabackenddemo.service.CartService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -18,28 +19,23 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    // Simplified: using header X-User-Id to identify user
     @GetMapping
-    public ApiResponse<CartResponse> getCart(@RequestHeader("X-User-Id") Long userId,
-            @RequestParam(required = false) String currency) {
-        return ApiResponse.success(cartService.getCart(userId, currency));
+    public ApiResponse<CartResponse> getCart(@RequestParam(required = false) String currency) {
+        return ApiResponse.success(cartService.getCart(SecurityUtils.getCurrentUserId(), currency));
     }
 
     @PostMapping("/items")
-    public ApiResponse<CartResponse> addItem(@RequestHeader("X-User-Id") Long userId,
-            @Valid @RequestBody AddCartItemRequest request) {
-        return ApiResponse.success(cartService.addItem(userId, request));
+    public ApiResponse<CartResponse> addItem(@Valid @RequestBody AddCartItemRequest request) {
+        return ApiResponse.success(cartService.addItem(SecurityUtils.getCurrentUserId(), request));
     }
 
     @PutMapping("/items/{itemId}")
-    public ApiResponse<CartResponse> updateItem(@RequestHeader("X-User-Id") Long userId,
-            @PathVariable Long itemId, @Valid @RequestBody UpdateCartItemRequest request) {
-        return ApiResponse.success(cartService.updateItemQuantity(userId, itemId, request.quantity()));
+    public ApiResponse<CartResponse> updateItem(@PathVariable Long itemId, @Valid @RequestBody UpdateCartItemRequest request) {
+        return ApiResponse.success(cartService.updateItemQuantity(SecurityUtils.getCurrentUserId(), itemId, request.quantity()));
     }
 
     @DeleteMapping("/items/{itemId}")
-    public ApiResponse<CartResponse> removeItem(@RequestHeader("X-User-Id") Long userId,
-            @PathVariable Long itemId) {
-        return ApiResponse.success(cartService.removeItem(userId, itemId));
+    public ApiResponse<CartResponse> removeItem(@PathVariable Long itemId) {
+        return ApiResponse.success(cartService.removeItem(SecurityUtils.getCurrentUserId(), itemId));
     }
 }

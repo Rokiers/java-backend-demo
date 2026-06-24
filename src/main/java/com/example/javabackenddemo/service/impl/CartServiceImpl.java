@@ -1,12 +1,14 @@
 package com.example.javabackenddemo.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.javabackenddemo.dto.request.AddCartItemRequest;
 import com.example.javabackenddemo.dto.response.CartItemResponse;
 import com.example.javabackenddemo.dto.response.CartResponse;
 import com.example.javabackenddemo.entity.*;
 import com.example.javabackenddemo.exception.InsufficientStockException;
 import com.example.javabackenddemo.exception.ResourceNotFoundException;
-import com.example.javabackenddemo.repository.*;
+import com.example.javabackenddemo.mapper.*;
 import com.example.javabackenddemo.service.CartService;
 import com.example.javabackenddemo.service.CurrencyService;
 import com.example.javabackenddemo.service.InventoryService;
@@ -19,23 +21,23 @@ import java.util.List;
 @Service
 public class CartServiceImpl implements CartService {
 
-    private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
-    private final SkuRepository skuRepository;
-    private final ProductRepository productRepository;
-    private final SkuSpecificationRepository specRepository;
+    private final CartMapper cartMapper;
+    private final CartItemMapper cartItemMapper;
+    private final SkuMapper skuMapper;
+    private final ProductMapper productMapper;
+    private final SkuSpecificationMapper specMapper;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
 
-    public CartServiceImpl(CartRepository cartRepository, CartItemRepository cartItemRepository,
-                           SkuRepository skuRepository, ProductRepository productRepository,
-                           SkuSpecificationRepository specRepository,
+    public CartServiceImpl(CartMapper cartMapper, CartItemMapper cartItemMapper,
+                           SkuMapper skuMapper, ProductMapper productMapper,
+                           SkuSpecificationMapper specMapper,
                            InventoryService inventoryService, CurrencyService currencyService) {
-        this.cartRepository = cartRepository;
-        this.cartItemRepository = cartItemRepository;
-        this.skuRepository = skuRepository;
-        this.productRepository = productRepository;
-        this.specRepository = specRepository;
+        this.cartMapper = cartMapper;
+        this.cartItemMapper = cartItemMapper;
+        this.skuMapper = skuMapper;
+        this.productMapper = productMapper;
+        this.specMapper = specMapper;
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
     }
@@ -50,21 +52,22 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse addItem(Long userId, AddCartItemRequest request) {
         Cart cart = getOrCreateCart(userId);
-        Sku sku = skuRepository.findById(request.skuId())
-                .orElseThrow(() -> new ResourceNotFoundException("SKU not found: " + request.skuId()));
+        Sku sku = skuMapper.selectById(request.skuId());
+        if (sku == null) throw new ResourceNotFoundException("SKU not found: " + request.skuId());
         int available = inventoryService.getAvailableStock(request.skuId());
-        var existing = cartItemRepository.findByCartIdAndSkuId(cart.getId(), request.skuId());
-        int currentQty = existing.map(CartItem::getQuantity).orElse(0);
+        var existing = cartItemMapper.selectOne(new LambdaQueryWrapper<CartItem>()
+                .eq(CartItem::getCartId, cart.getId())
+                .eq(CartItem::getSkuId, request.skuId()));
+        int currentQty = existing != null ? existing.getQuantity() : 0;
         if (currentQty + request.quantity() > available) {
             throw new InsufficientStockException("Insufficient stock for SKU: " + request.skuId(),
                     List.of(request.skuId()));
         }
-        if (existing.isPresent()) {
-            CartItem item = existing.get();
-            item.setQuantity(item.getQuantity() + request.quantity());
-            cartItemRepository.save(item);
+        if (existing != null) {
+            existing.setQuantity(existing.getQuantity() + request.quantity());
+            cartItemMapper.updateById(existing);
         } else {
-            cartItemRepository.save(CartItem.builder()
+            cartItemMapper.insert(CartItem.builder()
                     .cartId(cart.getId()).skuId(request.skuId()).quantity(request.quantity()).build());
         }
         return buildCartResponse(cart, null);
@@ -74,13 +77,13 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse updateItemQuantity(Long userId, Long itemId, int quantity) {
         Cart cart = getOrCreateCart(userId);
-        CartItem item = cartItemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found: " + itemId));
+        CartItem item = cartItemMapper.selectById(itemId);
+        if (item == null) throw new ResourceNotFoundException("Cart item not found: " + itemId);
         if (quantity <= 0) {
-            cartItemRepository.delete(item);
+            cartItemMapper.deleteById(itemId);
         } else {
             item.setQuantity(quantity);
-            cartItemRepository.save(item);
+            cartItemMapper.updateById(item);
         }
         return buildCartResponse(cart, null);
     }
@@ -89,33 +92,37 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse removeItem(Long userId, Long itemId) {
         Cart cart = getOrCreateCart(userId);
-        CartItem item = cartItemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found: " + itemId));
-        cartItemRepository.delete(item);
+        CartItem item = cartItemMapper.selectById(itemId);
+        if (item == null) throw new ResourceNotFoundException("Cart item not found: " + itemId);
+        cartItemMapper.deleteById(itemId);
         return buildCartResponse(cart, null);
     }
 
     @Override
     @Transactional
     public void removeItemsByIds(Long userId, List<Long> cartItemIds) {
-        cartItemRepository.deleteAllById(cartItemIds);
+        cartItemMapper.deleteBatchIds(cartItemIds);
     }
 
     private Cart getOrCreateCart(Long userId) {
-        return cartRepository.findByUserId(userId)
-                .orElseGet(() -> cartRepository.save(Cart.builder().userId(userId).build()));
+        Cart cart = cartMapper.selectOne(new LambdaQueryWrapper<Cart>().eq(Cart::getUserId, userId));
+        if (cart == null) {
+            cart = Cart.builder().userId(userId).build();
+            cartMapper.insert(cart);
+        }
+        return cart;
     }
 
     private CartResponse buildCartResponse(Cart cart, String currency) {
-        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
+        List<CartItem> items = cartItemMapper.selectList(new LambdaQueryWrapper<CartItem>().eq(CartItem::getCartId, cart.getId()));
         BigDecimal total = BigDecimal.ZERO;
         List<CartItemResponse> itemResponses = new java.util.ArrayList<>();
         for (CartItem item : items) {
-            Sku sku = skuRepository.findById(item.getSkuId()).orElse(null);
+            Sku sku = skuMapper.selectById(item.getSkuId());
             if (sku == null) continue;
-            Product product = productRepository.findById(sku.getProductId()).orElse(null);
+            Product product = productMapper.selectById(sku.getProductId());
             if (product == null) continue;
-            List<SkuSpecification> specs = specRepository.findBySkuId(sku.getId());
+            List<SkuSpecification> specs = specMapper.selectList(new LambdaQueryWrapper<SkuSpecification>().eq(SkuSpecification::getSkuId, sku.getId()));
             String specStr = specs.stream().map(s -> s.getSpecName() + ":" + s.getSpecValue())
                     .reduce((a, b) -> a + ", " + b).orElse("");
             BigDecimal price = sku.getPrice();

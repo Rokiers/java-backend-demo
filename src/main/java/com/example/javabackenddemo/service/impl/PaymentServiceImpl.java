@@ -1,5 +1,6 @@
 package com.example.javabackenddemo.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.javabackenddemo.dto.request.CreatePaymentRequest;
 import com.example.javabackenddemo.dto.request.UpdateOrderStatusRequest;
 import com.example.javabackenddemo.dto.response.PaymentResponse;
@@ -10,8 +11,8 @@ import com.example.javabackenddemo.enums.PaymentMethod;
 import com.example.javabackenddemo.enums.PaymentStatus;
 import com.example.javabackenddemo.exception.InvalidStateTransitionException;
 import com.example.javabackenddemo.exception.ResourceNotFoundException;
-import com.example.javabackenddemo.repository.OrderRepository;
-import com.example.javabackenddemo.repository.PaymentRepository;
+import com.example.javabackenddemo.mapper.OrderMapper;
+import com.example.javabackenddemo.mapper.PaymentMapper;
 import com.example.javabackenddemo.service.OrderService;
 import com.example.javabackenddemo.service.PaymentService;
 import org.springframework.stereotype.Service;
@@ -23,28 +24,29 @@ import java.util.UUID;
 @Service
 public class PaymentServiceImpl implements PaymentService {
 
-    private final PaymentRepository paymentRepository;
-    private final OrderRepository orderRepository;
+    private final PaymentMapper paymentMapper;
+    private final OrderMapper orderMapper;
     private final OrderService orderService;
 
-    public PaymentServiceImpl(PaymentRepository paymentRepository, OrderRepository orderRepository,
+    public PaymentServiceImpl(PaymentMapper paymentMapper, OrderMapper orderMapper,
                               OrderService orderService) {
-        this.paymentRepository = paymentRepository;
-        this.orderRepository = orderRepository;
+        this.paymentMapper = paymentMapper;
+        this.orderMapper = orderMapper;
         this.orderService = orderService;
     }
 
     @Override
     @Transactional
     public PaymentResponse createPayment(Long userId, CreatePaymentRequest request) {
-        Order order = orderRepository.findById(request.orderId())
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + request.orderId()));
+        Order order = orderMapper.selectById(request.orderId());
+        if (order == null) throw new ResourceNotFoundException("Order not found: " + request.orderId());
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new InvalidStateTransitionException("Order is not in PENDING status");
         }
-        // Check if payment already exists
-        paymentRepository.findByOrderIdAndStatus(order.getId(), PaymentStatus.PENDING)
-                .ifPresent(p -> { throw new InvalidStateTransitionException("Payment already exists for this order"); });
+        Payment existing = paymentMapper.selectOne(new LambdaQueryWrapper<Payment>()
+                .eq(Payment::getOrderId, order.getId())
+                .eq(Payment::getStatus, PaymentStatus.PENDING));
+        if (existing != null) throw new InvalidStateTransitionException("Payment already exists for this order");
 
         String paymentNo = "PAY" + UUID.randomUUID().toString().replace("-", "").substring(0, 17);
         Payment payment = Payment.builder()
@@ -55,21 +57,21 @@ public class PaymentServiceImpl implements PaymentService {
                 .currency(order.getCurrency())
                 .paymentMethod(PaymentMethod.valueOf(request.paymentMethod()))
                 .build();
-        return toResponse(paymentRepository.save(payment));
+        paymentMapper.insert(payment);
+        return toResponse(payment);
     }
 
     @Override
     @Transactional
     public PaymentResponse mockPayCallback(String paymentNo) {
-        Payment payment = paymentRepository.findByPaymentNo(paymentNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentNo));
+        Payment payment = paymentMapper.selectOne(new LambdaQueryWrapper<Payment>().eq(Payment::getPaymentNo, paymentNo));
+        if (payment == null) throw new ResourceNotFoundException("Payment not found: " + paymentNo);
         if (payment.getStatus() != PaymentStatus.PENDING) {
             throw new InvalidStateTransitionException("Payment is not in PENDING status");
         }
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setPaidAt(LocalDateTime.now());
-        paymentRepository.save(payment);
-        // Update order status to PAID
+        paymentMapper.updateById(payment);
         orderService.updateOrderStatus(payment.getOrderId(),
                 new UpdateOrderStatusRequest("PAID", null));
         return toResponse(payment);
@@ -77,8 +79,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponse getPaymentByOrderId(Long orderId) {
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for order: " + orderId));
+        Payment payment = paymentMapper.selectOne(new LambdaQueryWrapper<Payment>().eq(Payment::getOrderId, orderId));
+        if (payment == null) throw new ResourceNotFoundException("Payment not found for order: " + orderId);
         return toResponse(payment);
     }
 

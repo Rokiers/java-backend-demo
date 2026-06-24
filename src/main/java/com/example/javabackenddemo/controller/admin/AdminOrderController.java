@@ -5,7 +5,6 @@ import com.example.javabackenddemo.dto.response.*;
 import com.example.javabackenddemo.enums.OrderStatus;
 import com.example.javabackenddemo.service.OrderService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +28,7 @@ public class AdminOrderController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         return ApiResponse.success(PageResponse.from(
-                orderService.adminListOrders(status, orderNo, startDate, endDate, PageRequest.of(page, size))));
+                orderService.adminListOrders(status, orderNo, startDate, endDate, page, size)));
     }
 
     @GetMapping("/{id}")

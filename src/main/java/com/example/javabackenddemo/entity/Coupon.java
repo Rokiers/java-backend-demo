@@ -1,57 +1,53 @@
 package com.example.javabackenddemo.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
 import com.example.javabackenddemo.enums.CouponType;
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "coupon")
+@TableName("coupon")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Coupon {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 32)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String code;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "coupon_type", nullable = false, length = 20)
+    @TableField(value = "coupon_type", jdbcType = JdbcType.VARCHAR)
     private CouponType couponType;
 
-    @Column(name = "discount_value", nullable = false, precision = 12, scale = 2)
+    @TableField(value = "discount_value", jdbcType = JdbcType.DECIMAL)
     private BigDecimal discountValue;
 
-    @Column(name = "min_order_amount", nullable = false, precision = 12, scale = 2)
+    @TableField(value = "min_order_amount", jdbcType = JdbcType.DECIMAL)
     @Builder.Default
     private BigDecimal minOrderAmount = BigDecimal.ZERO;
 
-    @Column(name = "total_count", nullable = false)
+    @TableField(value = "total_count", jdbcType = JdbcType.INTEGER)
     private Integer totalCount;
 
-    @Column(name = "used_count", nullable = false)
+    @TableField(value = "used_count", jdbcType = JdbcType.INTEGER)
     @Builder.Default
     private Integer usedCount = 0;
 
-    @Column(name = "start_time", nullable = false)
+    @TableField(value = "start_time", jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime startTime;
 
-    @Column(name = "end_time", nullable = false)
+    @TableField(value = "end_time", jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime endTime;
 
-    @Column(nullable = false)
+    @TableField(jdbcType = JdbcType.BOOLEAN)
     @Builder.Default
     private Boolean enabled = true;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 }

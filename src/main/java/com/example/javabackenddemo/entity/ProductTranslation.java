@@ -1,26 +1,25 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
+import org.apache.ibatis.type.JdbcType;
 
-@Entity
-@Table(name = "product_translation", uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "language_code"}))
+@TableName("product_translation")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ProductTranslation {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "product_id", nullable = false)
+    @TableField(value = "product_id", jdbcType = JdbcType.BIGINT)
     private Long productId;
 
-    @Column(name = "language_code", nullable = false, length = 5)
+    @TableField(value = "language_code", jdbcType = JdbcType.VARCHAR)
     private String languageCode;
 
-    @Column(nullable = false, length = 200)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @TableField(jdbcType = JdbcType.LONGVARCHAR)
     private String description;
 }

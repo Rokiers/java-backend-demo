@@ -3,6 +3,7 @@ package com.example.javabackenddemo.controller.api;
 import com.example.javabackenddemo.dto.request.CreatePaymentRequest;
 import com.example.javabackenddemo.dto.response.ApiResponse;
 import com.example.javabackenddemo.dto.response.PaymentResponse;
+import com.example.javabackenddemo.security.SecurityUtils;
 import com.example.javabackenddemo.service.PaymentService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,8 @@ public class PaymentController {
     }
 
     @PostMapping
-    public ApiResponse<PaymentResponse> create(@RequestHeader("X-User-Id") Long userId,
-            @Valid @RequestBody CreatePaymentRequest request) {
-        return ApiResponse.success(paymentService.createPayment(userId, request));
+    public ApiResponse<PaymentResponse> create(@Valid @RequestBody CreatePaymentRequest request) {
+        return ApiResponse.success(paymentService.createPayment(SecurityUtils.getCurrentUserId(), request));
     }
 
     @PostMapping("/callback/{paymentNo}")

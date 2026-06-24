@@ -4,7 +4,6 @@ import com.example.javabackenddemo.dto.request.UpdateInventoryRequest;
 import com.example.javabackenddemo.dto.response.*;
 import com.example.javabackenddemo.service.InventoryService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,7 +20,7 @@ public class AdminInventoryController {
     public ApiResponse<PageResponse<InventoryResponse>> list(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "false") boolean lowStock) {
-        return ApiResponse.success(PageResponse.from(inventoryService.listInventory(lowStock, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(inventoryService.listInventory(lowStock, page, size)));
     }
 
     @PutMapping("/{skuId}")
@@ -33,6 +32,6 @@ public class AdminInventoryController {
     @GetMapping("/{skuId}/logs")
     public ApiResponse<PageResponse<InventoryLogResponse>> logs(@PathVariable Long skuId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(PageResponse.from(inventoryService.getInventoryLogs(skuId, PageRequest.of(page, size))));
+        return ApiResponse.success(PageResponse.from(inventoryService.getInventoryLogs(skuId, page, size)));
     }
 }

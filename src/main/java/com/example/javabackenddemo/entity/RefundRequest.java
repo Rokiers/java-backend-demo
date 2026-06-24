@@ -1,54 +1,48 @@
 package com.example.javabackenddemo.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
 import com.example.javabackenddemo.enums.RefundStatus;
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.apache.ibatis.type.JdbcType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "refund_request")
+@TableName("refund_request")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RefundRequest {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "refund_no", nullable = false, unique = true, length = 32)
+    @TableField(value = "refund_no", jdbcType = JdbcType.VARCHAR)
     private String refundNo;
 
-    @Column(name = "order_id", nullable = false)
+    @TableField(value = "order_id", jdbcType = JdbcType.BIGINT)
     private Long orderId;
 
-    @Column(name = "user_id", nullable = false)
+    @TableField(value = "user_id", jdbcType = JdbcType.BIGINT)
     private Long userId;
 
-    @Column(name = "refund_amount", nullable = false, precision = 12, scale = 2)
+    @TableField(value = "refund_amount", jdbcType = JdbcType.DECIMAL)
     private BigDecimal refundAmount;
 
-    @Column(nullable = false, length = 200)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     private String reason;
 
-    @Column(columnDefinition = "TEXT")
+    @TableField(jdbcType = JdbcType.LONGVARCHAR)
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @TableField(jdbcType = JdbcType.VARCHAR)
     @Builder.Default
     private RefundStatus status = RefundStatus.PENDING;
 
-    @Column(name = "admin_remark", length = 500)
+    @TableField(value = "admin_remark", jdbcType = JdbcType.VARCHAR)
     private String adminRemark;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE, jdbcType = JdbcType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

@@ -1,23 +1,22 @@
 package com.example.javabackenddemo.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.*;
+import org.apache.ibatis.type.JdbcType;
 
-@Entity
-@Table(name = "sku_specification")
+@TableName("sku_specification")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class SkuSpecification {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "sku_id", nullable = false)
+    @TableField(value = "sku_id", jdbcType = JdbcType.BIGINT)
     private Long skuId;
 
-    @Column(name = "spec_name", nullable = false, length = 50)
+    @TableField(value = "spec_name", jdbcType = JdbcType.VARCHAR)
     private String specName;
 
-    @Column(name = "spec_value", nullable = false, length = 100)
+    @TableField(value = "spec_value", jdbcType = JdbcType.VARCHAR)
     private String specValue;
 }
